@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🏝️ しまマップメーカー</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --panel-bg: #fffdf7;
+    --accent: #ff9eb5;
+    --accent2: #ffcb77;
+    --shadow: rgba(100,80,60,0.12);
+    --text: #5a4a3a;
+    --text-light: #8a7a6a;
+    --border: #e8d8c0;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+- { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+height: 100%;
+font-family: ‘Nunito’, sans-serif;
+background: linear-gradient(135deg, #e8f5e9 0%, #e0f4fb 50%, #fce4ec 100%);
+color: var(–text);
+overflow: hidden;
+}
+
+body::before {
+content: ‘’;
+position: fixed; inset: 0;
+background-image:
+radial-gradient(circle at 15% 20%, rgba(168,216,168,0.25) 0%, transparent 40%),
+radial-gradient(circle at 85% 70%, rgba(126,200,227,0.25) 0%, transparent 40%);
+pointer-events: none; z-index: 0;
+}
+
+.app {
+position: relative; z-index: 1;
+height: 100%; display: flex; flex-direction: column;
+padding-bottom: 78px;
+}
+
+/* ── HEADER ── */
+header {
+flex-shrink: 0;
+padding: 10px 12px 9px;
+background: var(–panel-bg);
+border-bottom: 2px solid var(–border);
+box-shadow: 0 2px 12px var(–shadow);
+display: flex; align-items: center; gap: 10px;
+}
+
+header h1 {
+font-size: clamp(15px, 4vw, 22px);
+font-weight: 900;
+background: linear-gradient(135deg, #4caf7d, #2196a8, #e91e8c);
+-webkit-background-clip: text; -webkit-text-fill-color: transparent;
+background-clip: text; white-space: nowrap;
+}
+
+.island-name-input {
+flex: 1; min-width: 0;
+padding: 6px 12px;
+border: 2px solid var(–border); border-radius: 50px;
+font-family: ‘Nunito’, sans-serif; font-size: 13px; font-weight: 700;
+color: var(–text); background: #faf6ee; outline: none;
+}
+.island-name-input:focus { border-color: var(–accent); }
+
+.btn-export {
+flex-shrink: 0;
+padding: 7px 14px;
+border: none; border-radius: 50px;
+background: linear-gradient(135deg, #4caf7d, #2196a8);
+color: white; font-family: ‘Nunito’, sans-serif;
+font-size: 12px; font-weight: 800; cursor: pointer;
+box-shadow: 0 3px 10px rgba(76,175,125,0.4);
+display: flex; align-items: center; gap: 5px;
+white-space: nowrap;
+}
+.btn-export:active { transform: scale(0.95); }
+
+/* ── BODY ── */
+.body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── MAP AREA ── */
+.map-area {
+flex: 1; position: relative; overflow: hidden;
+background: repeating-conic-gradient(#ece7d8 0% 25%, #e0dace 0% 50%) 0 0 / 20px 20px;
+}
+
+#mapViewport {
+position: absolute; top:0; left:0; width:100%; height:100%;
+overflow: hidden; touch-action: none; cursor: crosshair;
+}
+
+#mapCanvas {
+position: absolute; top:0; left:0;
+transform-origin: 0 0;
+image-rendering: pixelated; display: block;
+}
+
+/* zoom controls */
+.zoom-controls {
+position: absolute; right: 10px; bottom: 10px;
+display: flex; flex-direction: column; gap: 4px; z-index: 10;
+}
+.zoom-btn {
+width: 36px; height: 36px;
+border: 2px solid var(–border); border-radius: 10px;
+background: var(–panel-bg); font-size: 18px; font-weight: 900;
+cursor: pointer; display: flex; align-items: center; justify-content: center;
+box-shadow: 0 2px 8px var(–shadow); color: var(–text); transition: all 0.1s;
+font-family: ‘Nunito’, sans-serif;
+}
+.zoom-btn:active { transform: scale(0.88); background: #f0ece0; }
+
+.zoom-level {
+background: var(–panel-bg); border: 2px solid var(–border);
+border-radius: 8px; font-size: 10px; font-weight: 800; color: var(–text-light);
+text-align: center; padding: 3px 2px; box-shadow: 0 2px 8px var(–shadow);
+}
+
+.map-info-badge {
+position: absolute; left: 10px; bottom: 10px;
+background: rgba(255,253,247,0.88); border: 1.5px solid var(–border);
+border-radius: 20px; padding: 4px 10px;
+font-size: 11px; font-weight: 800; color: var(–text-light);
+backdrop-filter: blur(4px); pointer-events: none;
+}
+
+/* ── BOTTOM PANEL ── */
+.bottom-panel {
+flex-shrink: 0;
+background: var(–panel-bg);
+border-top: 2px solid var(–border);
+box-shadow: 0 -3px 16px var(–shadow);
+padding: 10px 12px 12px;
+display: flex; flex-direction: column; gap: 8px;
+}
+
+/* Palette strip */
+.palette-scroll {
+display: flex; gap: 6px;
+overflow-x: auto; overflow-y: hidden;
+padding-bottom: 4px;
+scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.palette-scroll::-webkit-scrollbar { display: none; }
+
+.palette-item {
+flex-shrink: 0;
+display: flex; flex-direction: column; align-items: center; gap: 3px;
+padding: 6px 8px 5px;
+border-radius: 12px; border: 2.5px solid transparent;
+cursor: pointer; background: #f5f0e4;
+transition: all 0.12s;
+user-select: none; -webkit-user-select: none;
+min-width: 52px;
+}
+.palette-item:active { transform: scale(0.91); }
+.palette-item.active {
+border-color: var(–accent); background: #fff0f5;
+box-shadow: 0 2px 10px rgba(255,158,181,0.4);
+}
+
+.palette-swatch {
+width: 34px; height: 34px; border-radius: 8px;
+display: flex; align-items: center; justify-content: center;
+font-size: 18px; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.1);
+}
+
+.palette-label {
+font-size: 10px; font-weight: 700; color: var(–text-light); white-space: nowrap;
+}
+
+/* ── TOOLS ROW ── */
+.tools-row {
+display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; overflow-x: auto;
+scrollbar-width: none;
+}
+.tools-row::-webkit-scrollbar { display: none; }
+
+.tool-btn {
+flex-shrink: 0;
+padding: 7px 12px;
+border: 2px solid var(–border); border-radius: 50px;
+background: var(–panel-bg); cursor: pointer;
+font-family: ‘Nunito’, sans-serif; font-size: 12px; font-weight: 700;
+color: var(–text); transition: all 0.12s;
+display: flex; align-items: center; gap: 5px; white-space: nowrap;
+}
+.tool-btn:active { transform: scale(0.94); }
+.tool-btn.active {
+background: #fff8e0; border-color: var(–accent2);
+box-shadow: 0 2px 8px rgba(255,203,119,0.4);
+}
+
+.brush-control {
+flex-shrink: 0;
+display: flex; align-items: center; gap: 5px;
+background: #f5f0e4; border-radius: 50px;
+padding: 5px 10px; border: 2px solid var(–border);
+}
+.brush-control label { font-size: 11px; font-weight: 800; color: var(–text-light); }
+.brush-control input[type=range] { width: 56px; accent-color: var(–accent); }
+.brush-val { font-size: 12px; font-weight: 800; color: var(–text); min-width: 14px; }
+
+.flex-spacer { flex: 1; min-width: 4px; }
+
+.icon-btn {
+flex-shrink: 0;
+padding: 7px 10px;
+border: 2px solid var(–border); border-radius: 50px;
+background: #f8f3e8; cursor: pointer;
+font-family: ‘Nunito’, sans-serif; font-size: 13px;
+color: var(–text-light); transition: all 0.12s;
+display: flex; align-items: center; gap: 4px; white-space: nowrap;
+}
+.icon-btn:active { transform: scale(0.94); background: #f0ece0; }
+
+/* ── TOAST ── */
+.toast {
+position: fixed; top: 68px; left: 50%;
+transform: translateX(-50%) translateY(-20px);
+background: #3d3530; color: white;
+padding: 10px 22px; border-radius: 50px;
+font-size: 13px; font-weight: 700; z-index: 1000;
+transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+white-space: nowrap; pointer-events: none;
+opacity: 0;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ── MODAL ── */
+.modal-overlay {
+display: none; position: fixed; inset: 0;
+background: rgba(90,74,58,0.45); backdrop-filter: blur(4px);
+z-index: 200; align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+background: var(–panel-bg); border-radius: 24px; padding: 26px;
+width: min(320px, 90vw);
+box-shadow: 0 20px 60px rgba(90,74,58,0.3); border: 2px solid var(–border);
+}
+.modal h2 { font-size: 17px; font-weight: 900; margin-bottom: 18px; text-align: center; }
+.modal-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.modal-row label { font-size: 13px; font-weight: 700; }
+.modal-row input[type=number] {
+width: 78px; padding: 7px 10px;
+border: 2px solid var(–border); border-radius: var(–radius-sm);
+font-family: ‘Nunito’, sans-serif; font-size: 14px; font-weight: 800;
+text-align: center; color: var(–text); background: #faf6ee; outline: none;
+}
+.modal-row input[type=number]:focus { border-color: var(–accent); }
+.modal-note { font-size: 11px; color: var(–text-light); text-align: center; }
+.modal-btns { display: flex; gap: 8px; margin-top: 16px; }
+.modal-btn {
+flex: 1; padding: 9px 12px; border: none; border-radius: 50px;
+font-family: ‘Nunito’, sans-serif; font-size: 13px; font-weight: 800;
+cursor: pointer; justify-content: center; display: flex; align-items: center; gap: 5px;
+}
+.modal-btn:active { transform: scale(0.95); }
+.modal-btn-ok { background: linear-gradient(135deg,#4caf7d,#2196a8); color: white; }
+.modal-btn-cancel { background: #f8f3e8; color: var(–text-light); border: 2px solid var(–border); }
+
+/* ── AD BANNER ── */
+.ad-banner {
+position: fixed; bottom: 0; left: 0; right: 0;
+z-index: 500;
+background: linear-gradient(135deg, #fff0f8 0%, #f0f8ff 50%, #fffff0 100%);
+border-top: 2px solid #f4c2d8;
+padding: 8px 14px 10px;
+display: flex; flex-direction: column; align-items: center; gap: 5px;
+box-shadow: 0 -4px 20px rgba(255,150,190,0.18);
+}
+.ad-copy {
+font-size: 11px; font-weight: 800;
+color: #c0507a;
+letter-spacing: 0.2px;
+text-align: center;
+display: flex; align-items: center; gap: 4px;
+}
+.ad-btn {
+display: flex; align-items: center; gap: 8px;
+padding: 8px 20px;
+background: linear-gradient(135deg, #ff6bb3, #ffb347);
+border-radius: 50px;
+text-decoration: none;
+color: white;
+font-family: ‘Nunito’, sans-serif;
+font-size: 13px; font-weight: 900;
+box-shadow: 0 3px 14px rgba(255,107,179,0.45);
+transition: transform 0.15s, box-shadow 0.15s;
+white-space: nowrap;
+}
+.ad-btn:active { transform: scale(0.96); }
+.ad-btn:hover  { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(255,107,179,0.55); }
+.ad-btn-icon { font-size: 18px; }
+.ad-btn-text { display: flex; flex-direction: column; line-height: 1.2; }
+.ad-btn-main { font-size: 13px; }
+.ad-btn-sub  { font-size: 10px; font-weight: 700; opacity: 0.88; }
+.ad-close {
+position: absolute; top: 6px; right: 10px;
+background: none; border: none; cursor: pointer;
+font-size: 14px; color: #c0a0b0; padding: 2px 4px;
+line-height: 1;
+}
+
+/* ── cursor preview ── */
+#cursorPreview {
+position: fixed; pointer-events: none;
+font-size: 20px; transform: translate(-50%,-50%);
+z-index: 999; opacity: 0;
+filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+transition: opacity 0.1s;
+}
+</style>
+
+</head>
+<body>
+
+<div id="cursorPreview"></div>
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>🗺️ マップサイズ変更</h2>
+    <div class="modal-row">
+      <label>横（マス数）</label>
+      <input type="number" id="newCols" min="8" max="40" value="20">
+    </div>
+    <div class="modal-row">
+      <label>縦（マス数）</label>
+      <input type="number" id="newRows" min="8" max="40" value="20">
+    </div>
+    <p class="modal-note">※変更するとマップがリセットされます</p>
+    <div class="modal-btns">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="modal-btn modal-btn-ok" onclick="applyResize()">✨ 変更する</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <header>
+    <h1>🏝️ しまマップ</h1>
+    <input class="island-name-input" type="text" id="islandName" placeholder="島の名前…" maxlength="18" value="ゆめしま">
+    <button class="btn-export" onclick="exportMap()">📤 保存</button>
+  </header>
+
+  <div class="body">
+    <div class="map-area">
+      <div id="mapViewport">
+        <canvas id="mapCanvas"></canvas>
+      </div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomStep(1.25)">＋</button>
+        <div class="zoom-level" id="zoomLabel">100%</div>
+        <button class="zoom-btn" onclick="zoomStep(0.8)">－</button>
+        <button class="zoom-btn" onclick="resetZoom()" style="font-size:14px;">⟳</button>
+      </div>
+      <div class="map-info-badge" id="mapInfo">20 × 20マス</div>
+    </div>
+
+```
+<div class="bottom-panel">
+  <div class="palette-scroll" id="palette"></div>
+  <div class="tools-row">
+    <button class="tool-btn active" id="toolPaint" onclick="setTool('paint')">🖊️ ペン</button>
+    <button class="tool-btn" id="toolFill" onclick="setTool('fill')">🪣 塗り</button>
+    <div class="brush-control">
+      <label>サイズ</label>
+      <input type="range" id="brushSize" min="1" max="4" value="1" oninput="updateBrushSize(this.value)">
+      <span class="brush-val" id="brushSizeVal">1</span>
+    </div>
+    <div class="flex-spacer"></div>
+    <button class="icon-btn" onclick="openModal()">📐</button>
+    <button class="icon-btn" onclick="clearMap()">🗑️</button>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════
+const PARTS = [
+  { id:'grass',    label:'草原',     emoji:'🟩', bg:'#a8d8a8', isEraser:true },
+  { id:'water',    label:'川/海',    emoji:'💧', bg:'#7ec8e3' },
+  { id:'sand',     label:'道/砂',    emoji:'🟫', bg:'#e8c87a' },
+  { id:'cliff',    label:'崖',       emoji:'⛰️', bg:'#b09080' },
+  { id:'tree',     label:'木',       emoji:'🌲', bg:'#a8d8a8' },
+  { id:'house',    label:'家',       emoji:'🏠', bg:'#ffdb9b' },
+  { id:'tent',     label:'テント',   emoji:'⛺', bg:'#d4eacc' },
+  { id:'flower',   label:'花',       emoji:'🌸', bg:'#ffd6e8' },
+  { id:'rock',     label:'岩',       emoji:'🪨', bg:'#c8c0b8' },
+  { id:'mushroom', label:'きのこ',   emoji:'🍄', bg:'#ffd6c0' },
+  { id:'bridge',   label:'橋',       emoji:'🌉', bg:'#e8c87a' },
+  { id:'star',     label:'スポット', emoji:'⭐', bg:'#fff8cc' },
+];
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+const CELL = 28;
+let COLS = 20, ROWS = 20;
+let grid = [];
+let selectedPart = PARTS[0];
+let currentTool = 'paint';
+let brushSize = 1;
+
+// Zoom/pan
+let scale = 1, panX = 0, panY = 0;
+const MIN_SCALE = 0.3, MAX_SCALE = 5;
+
+// Interaction state
+let isPainting = false;
+let lastCell = null;
+
+// Touch gesture
+let gestureMode = null; // null | 'draw' | 'pan' | 'pinch'
+let touch1Start = null; // {x,y,panX,panY} at gesture start
+let lastPinchDist = null;
+let lastPinchMid  = null;
+const MOVE_THRESHOLD = 8;
+
+const canvas   = document.getElementById('mapCanvas');
+const ctx      = canvas.getContext('2d');
+const viewport = document.getElementById('mapViewport');
+
+// ════════════════════════════════════════
+// GRID
+// ════════════════════════════════════════
+function initGrid() {
+  grid = [];
+  for (let r = 0; r < ROWS; r++) {
+    grid[r] = [];
+    for (let c = 0; c < COLS; c++) grid[r][c] = PARTS[0];
+  }
+}
+
+function resizeCanvas() {
+  canvas.width  = COLS * CELL;
+  canvas.height = ROWS * CELL;
+}
+
+// ════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════
+function applyTransform() {
+  canvas.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;
+  document.getElementById('zoomLabel').textContent = Math.round(scale * 100) + '%';
+}
+
+function drawGrid() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      drawCell(r, c);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 0.5;
+  for (let c = 0; c <= COLS; c++) {
+    ctx.beginPath(); ctx.moveTo(c*CELL,0); ctx.lineTo(c*CELL,ROWS*CELL); ctx.stroke();
+  }
+  for (let r = 0; r <= ROWS; r++) {
+    ctx.beginPath(); ctx.moveTo(0,r*CELL); ctx.lineTo(COLS*CELL,r*CELL); ctx.stroke();
+  }
+}
+
+function drawCell(r, c) {
+  const p = grid[r][c];
+  const x = c*CELL, y = r*CELL;
+  ctx.fillStyle = p.bg;
+  ctx.fillRect(x, y, CELL, CELL);
+  if (!p.isEraser && !['water','sand','cliff'].includes(p.id)) {
+    ctx.font = `${CELL*0.65}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.emoji, x+CELL/2, y+CELL/2+1);
+  }
+}
+
+// ════════════════════════════════════════
+// ZOOM / PAN
+// ════════════════════════════════════════
+function clampPan() {
+  const vw = viewport.clientWidth;
+  const vh = viewport.clientHeight;
+  const mapW = canvas.width * scale;
+  const mapH = canvas.height * scale;
+  const mx = Math.max(mapW*0.5, vw*0.3);
+  const my = Math.max(mapH*0.5, vh*0.3);
+  panX = Math.min(mx, Math.max(panX, vw - mx));
+  panY = Math.min(my, Math.max(panY, vh - my));
+}
+
+function zoomAround(factor, cx, cy) {
+  const ns = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * factor));
+  const ratio = ns / scale;
+  panX = cx - ratio * (cx - panX);
+  panY = cy - ratio * (cy - panY);
+  scale = ns;
+  clampPan();
+  applyTransform();
+}
+
+function zoomStep(f) {
+  zoomAround(f, viewport.clientWidth/2, viewport.clientHeight/2);
+}
+
+function resetZoom() {
+  const vw = viewport.clientWidth;
+  const vh = viewport.clientHeight;
+  scale = Math.min(vw / canvas.width, vh / canvas.height, 1) * 0.90;
+  panX = (vw - canvas.width * scale) / 2;
+  panY = (vh - canvas.height * scale) / 2;
+  applyTransform();
+}
+
+// ════════════════════════════════════════
+// COORDINATE HELPER
+// ════════════════════════════════════════
+function clientToCell(cx, cy) {
+  const rect = viewport.getBoundingClientRect();
+  const lx = (cx - rect.left - panX) / scale;
+  const ly = (cy - rect.top  - panY) / scale;
+  return { r: Math.floor(ly/CELL), c: Math.floor(lx/CELL) };
+}
+
+function inBounds(r, c) { return r>=0 && r<ROWS && c>=0 && c<COLS; }
+
+// ════════════════════════════════════════
+// PAINT
+// ════════════════════════════════════════
+function paintAt(r, c) {
+  const half = Math.floor(brushSize/2);
+  let changed = false;
+  for (let dr=-half; dr<=half; dr++)
+    for (let dc=-half; dc<=half; dc++) {
+      const nr=r+dr, nc=c+dc;
+      if (inBounds(nr,nc) && grid[nr][nc]!==selectedPart) {
+        grid[nr][nc] = selectedPart; changed = true;
+      }
+    }
+  if (changed) drawGrid();
+}
+
+function floodFill(r, c, target, replacement) {
+  if (target===replacement || !inBounds(r,c)) return;
+  const stack=[[r,c]];
+  while (stack.length) {
+    const [cr,cc]=stack.pop();
+    if (!inBounds(cr,cc)||grid[cr][cc]!==target) continue;
+    grid[cr][cc]=replacement;
+    stack.push([cr+1,cc],[cr-1,cc],[cr,cc+1],[cr,cc-1]);
+  }
+  drawGrid();
+}
+
+// ════════════════════════════════════════
+// MOUSE (desktop)
+// ════════════════════════════════════════
+viewport.addEventListener('mousedown', e => {
+  e.preventDefault();
+  isPainting = true;
+  const {r,c} = clientToCell(e.clientX, e.clientY);
+  if (currentTool==='fill') {
+    if (inBounds(r,c)) floodFill(r,c,grid[r][c],selectedPart);
+    isPainting = false;
+  } else {
+    if (inBounds(r,c)) paintAt(r,c);
+    lastCell = {r,c};
+  }
+});
+
+viewport.addEventListener('mousemove', e => {
+  if (!isPainting || currentTool!=='paint') return;
+  const {r,c} = clientToCell(e.clientX, e.clientY);
+  if (inBounds(r,c) && (!lastCell||lastCell.r!==r||lastCell.c!==c)) {
+    paintAt(r,c); lastCell={r,c};
+  }
+});
+
+viewport.addEventListener('mouseup',    () => { isPainting=false; lastCell=null; });
+viewport.addEventListener('mouseleave', () => { isPainting=false; lastCell=null; });
+
+// Mouse wheel zoom
+viewport.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoomAround(e.deltaY<0?1.12:1/1.12, e.clientX, e.clientY);
+}, {passive:false});
+
+// ════════════════════════════════════════
+// TOUCH (mobile)  — smart gesture detection
+// ════════════════════════════════════════
+function tdist(a,b){ const dx=a.clientX-b.clientX,dy=a.clientY-b.clientY; return Math.sqrt(dx*dx+dy*dy); }
+function tmid(a,b){ return {x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2}; }
+
+viewport.addEventListener('touchstart', e=>{
+  e.preventDefault();
+
+  if (e.touches.length===2) {
+    gestureMode   = 'pinch';
+    isPainting    = false; lastCell=null;
+    lastPinchDist = tdist(e.touches[0],e.touches[1]);
+    lastPinchMid  = tmid(e.touches[0],e.touches[1]);
+    return;
+  }
+
+  // Single touch — defer until move to decide draw vs pan
+  gestureMode  = null;
+  isPainting   = false;
+  touch1Start  = { x:e.touches[0].clientX, y:e.touches[0].clientY, panX, panY };
+
+}, {passive:false});
+
+viewport.addEventListener('touchmove', e=>{
+  e.preventDefault();
+
+  // ── two-finger pinch/pan ──
+  if (e.touches.length===2) {
+    if (gestureMode!=='pinch') {
+      gestureMode='pinch'; isPainting=false; lastCell=null;
+      lastPinchDist=tdist(e.touches[0],e.touches[1]);
+      lastPinchMid=tmid(e.touches[0],e.touches[1]);
+    }
+    const d = tdist(e.touches[0],e.touches[1]);
+    const m = tmid(e.touches[0],e.touches[1]);
+    if (lastPinchDist) zoomAround(d/lastPinchDist, m.x, m.y);
+    if (lastPinchMid) {
+      panX += m.x - lastPinchMid.x;
+      panY += m.y - lastPinchMid.y;
+      clampPan(); applyTransform();
+    }
+    lastPinchDist=d; lastPinchMid=m;
+    return;
+  }
+
+  // ── single finger ──
+  if (!touch1Start) return;
+  const tx=e.touches[0].clientX, ty=e.touches[0].clientY;
+  const dx=tx-touch1Start.x, dy=ty-touch1Start.y;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+
+  if (gestureMode===null && dist>MOVE_THRESHOLD) {
+    gestureMode = 'draw'; // single finger always draws
+    isPainting  = true;
+  }
+
+  if (gestureMode==='draw' && isPainting && currentTool==='paint') {
+    const {r,c}=clientToCell(tx,ty);
+    if (inBounds(r,c)&&(!lastCell||lastCell.r!==r||lastCell.c!==c)) {
+      paintAt(r,c); lastCell={r,c};
+    }
+  }
+
+}, {passive:false});
+
+viewport.addEventListener('touchend', e=>{
+  e.preventDefault();
+
+  // Pinch ended
+  if (e.touches.length<2) { lastPinchDist=null; lastPinchMid=null; }
+
+  if (e.touches.length===0) {
+    // Tap (no move) = single paint
+    if (gestureMode===null && touch1Start) {
+      const t=e.changedTouches[0];
+      const {r,c}=clientToCell(t.clientX,t.clientY);
+      if (inBounds(r,c)) {
+        if (currentTool==='fill') floodFill(r,c,grid[r][c],selectedPart);
+        else paintAt(r,c);
+      }
+    }
+    isPainting=false; lastCell=null; gestureMode=null; touch1Start=null;
+  }
+}, {passive:false});
+
+// ════════════════════════════════════════
+// PALETTE & TOOLS
+// ════════════════════════════════════════
+function buildPalette() {
+  const el=document.getElementById('palette');
+  el.innerHTML='';
+  PARTS.forEach(p=>{
+    const div=document.createElement('div');
+    div.className='palette-item'+(p===selectedPart?' active':'');
+    div.dataset.id=p.id;
+    div.innerHTML=`<div class="palette-swatch" style="background:${p.bg}">${p.emoji}</div><div class="palette-label">${p.label}</div>`;
+    div.addEventListener('pointerdown',()=>selectPart(p));
+    el.appendChild(div);
+  });
+}
+
+function selectPart(p) {
+  selectedPart=p;
+  document.querySelectorAll('.palette-item').forEach(el=>el.classList.toggle('active',el.dataset.id===p.id));
+  updateCursor();
+}
+
+function setTool(t) {
+  currentTool=t;
+  document.getElementById('toolPaint').classList.toggle('active',t==='paint');
+  document.getElementById('toolFill').classList.toggle('active',t==='fill');
+}
+
+function updateBrushSize(v) {
+  brushSize=parseInt(v);
+  document.getElementById('brushSizeVal').textContent=v;
+}
+
+// ════════════════════════════════════════
+// CURSOR (desktop)
+// ════════════════════════════════════════
+const cursorEl=document.getElementById('cursorPreview');
+document.addEventListener('mousemove',e=>{cursorEl.style.left=e.clientX+'px';cursorEl.style.top=e.clientY+'px';});
+viewport.addEventListener('mouseenter',()=>{cursorEl.style.opacity='1';});
+viewport.addEventListener('mouseleave',()=>{cursorEl.style.opacity='0';});
+function updateCursor(){ cursorEl.textContent=selectedPart.emoji; }
+
+// ════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════
+function exportMap() {
+  const name = document.getElementById('islandName').value||'しまマップ';
+  const EC=32, PAD=44, HEADER=56, FOOTER=40;
+  const W=COLS*EC+PAD*2, H=ROWS*EC+PAD*2+HEADER+FOOTER;
+  const ec2=document.createElement('canvas');
+  ec2.width=W*2; ec2.height=H*2;
+  const ec=ec2.getContext('2d');
+  ec.scale(2,2);
+
+  const bg=ec.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#e8f5e9'); bg.addColorStop(0.5,'#e0f4fb'); bg.addColorStop(1,'#fce4ec');
+  ec.fillStyle=bg; ec.fillRect(0,0,W,H);
+
+  ec.shadowColor='rgba(100,80,60,0.18)'; ec.shadowBlur=18; ec.shadowOffsetY=5;
+  roundRect(ec,PAD*0.5,PAD*0.5,W-PAD,H-PAD,20);
+  ec.fillStyle='#fffdf7'; ec.fill();
+  ec.shadowColor='transparent';
+
+  ec.strokeStyle='#e8d8c0'; ec.lineWidth=2;
+  roundRect(ec,PAD*0.5,PAD*0.5,W-PAD,H-PAD,20); ec.stroke();
+
+  ec.textAlign='center';
+  ec.font='bold 20px Nunito,sans-serif';
+  const hg=ec.createLinearGradient(W/2-100,0,W/2+100,0);
+  hg.addColorStop(0,'#4caf7d'); hg.addColorStop(0.5,'#2196a8'); hg.addColorStop(1,'#e91e8c');
+  ec.fillStyle=hg;
+  ec.fillText(`🏝️ ${name}`,W/2,PAD*0.5+34);
+
+  const mx=PAD, my=PAD*0.5+HEADER;
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+    const p=grid[r][c], x=mx+c*EC, y=my+r*EC;
+    ec.fillStyle=p.bg; ec.fillRect(x,y,EC,EC);
+    if (!p.isEraser&&!['water','sand','cliff'].includes(p.id)) {
+      ec.font=`${EC*0.62}px serif`; ec.textAlign='center'; ec.textBaseline='middle';
+      ec.fillText(p.emoji,x+EC/2,y+EC/2+1);
+    }
+  }
+  ec.strokeStyle='rgba(255,255,255,0.28)'; ec.lineWidth=0.5;
+  for (let c=0;c<=COLS;c++){ec.beginPath();ec.moveTo(mx+c*EC,my);ec.lineTo(mx+c*EC,my+ROWS*EC);ec.stroke();}
+  for (let r=0;r<=ROWS;r++){ec.beginPath();ec.moveTo(mx,my+r*EC);ec.lineTo(mx+COLS*EC,my+r*EC);ec.stroke();}
+  ec.strokeStyle='#d8c8b0'; ec.lineWidth=2;
+  ec.strokeRect(mx,my,COLS*EC,ROWS*EC);
+  ec.textAlign='center'; ec.font='11px Nunito,sans-serif'; ec.fillStyle='#b0a090';
+  ec.fillText('🌴 しまマップメーカーで作成 🌴',W/2,my+ROWS*EC+FOOTER*0.65);
+
+  const a=document.createElement('a');
+  a.download=`${name}_map.png`; a.href=ec2.toDataURL('image/png'); a.click();
+  showToast('📤 マップを保存しました！SNSでシェアしよう✨');
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+// ════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════
+function clearMap(){
+  if(!confirm('マップをリセットしますか？'))return;
+  initGrid(); drawGrid(); showToast('🌱 マップをリセットしました');
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+function openModal(){
+  document.getElementById('newCols').value=COLS;
+  document.getElementById('newRows').value=ROWS;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+function applyResize(){
+  const nc=Math.min(40,Math.max(8,parseInt(document.getElementById('newCols').value)||20));
+  const nr=Math.min(40,Math.max(8,parseInt(document.getElementById('newRows').value)||20));
+  COLS=nc; ROWS=nr;
+  document.getElementById('mapInfo').textContent=`${COLS} × ${ROWS}マス`;
+  initGrid(); resizeCanvas(); drawGrid(); resetZoom();
+  closeModal(); showToast(`🗺️ ${COLS}×${ROWS}マスに変更しました`);
+}
+document.getElementById('modalOverlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modalOverlay'))closeModal();
+});
+
+// ════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════
+buildPalette();
+initGrid();
+resizeCanvas();
+drawGrid();
+updateCursor();
+setTimeout(resetZoom, 60);
+document.getElementById('mapInfo').textContent=`${COLS} × ${ROWS}マス`;
+showToast('🏝️ しまマップメーカーへようこそ！');
+</script>
+
+<div class="ad-banner" id="adBanner">
+  <button class="ad-close" onclick="document.getElementById('adBanner').style.display='none'" title="閉じる">✕</button>
+  <div class="ad-copy">✨ 話題の新作『ぽこポケ』で自分だけの街を作ろう！</div>
+  <a class="ad-btn" href="https://www.amazon.co.jp/gp/search?ie=UTF8&tag=otaku093-22&keywords=%E3%81%BD%E3%81%93+%E3%81%82+%E3%83%9D%E3%82%B1%E3%83%A2%E3%83%B3" target="_blank" rel="noopener">
+    <span class="ad-btn-icon">🎮</span>
+    <div class="ad-btn-text">
+      <span class="ad-btn-main">ぽこ あ ポケモン をAmazonで見る</span>
+      <span class="ad-btn-sub">🛒 Amazonで今すぐチェック →</span>
+    </div>
+  </a>
+</div>
+</body>
+</html>
