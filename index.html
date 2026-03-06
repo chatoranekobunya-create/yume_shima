@@ -284,42 +284,41 @@ flex-shrink: 0;
 position: relative;
 z-index: 500;
 background: linear-gradient(135deg, #fff0f8 0%, #f0f8ff 50%, #fffff0 100%);
-border-top: 2px solid #f4c2d8;
-padding: 8px 14px env(safe-area-inset-bottom, 10px);
-padding-bottom: max(10px, env(safe-area-inset-bottom));
-display: flex; flex-direction: column; align-items: center; gap: 5px;
-box-shadow: 0 -4px 20px rgba(255,150,190,0.18);
+border-top: none;
+border-bottom: 2px solid #f4c2d8;
+padding: 7px 14px 8px;
+display: flex; flex-direction: row; align-items: center; gap: 8px;
+box-shadow: 0 3px 14px rgba(255,150,190,0.2);
 }
 .ad-copy {
+flex: 1; min-width: 0;
 font-size: 11px; font-weight: 800;
 color: #c0507a;
-letter-spacing: 0.2px;
-text-align: center;
-display: flex; align-items: center; gap: 4px;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
 }
 .ad-btn {
-display: flex; align-items: center; gap: 8px;
-padding: 8px 20px;
+flex-shrink: 0;
+display: flex; align-items: center; gap: 6px;
+padding: 7px 14px;
 background: linear-gradient(135deg, #ff6bb3, #ffb347);
 border-radius: 50px;
 text-decoration: none;
 color: white;
 font-family: ‘Nunito’, sans-serif;
-font-size: 13px; font-weight: 900;
-box-shadow: 0 3px 14px rgba(255,107,179,0.45);
-transition: transform 0.15s, box-shadow 0.15s;
+font-size: 12px; font-weight: 900;
+box-shadow: 0 3px 12px rgba(255,107,179,0.45);
+transition: transform 0.15s;
 white-space: nowrap;
 }
 .ad-btn:active { transform: scale(0.96); }
-.ad-btn:hover  { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(255,107,179,0.55); }
-.ad-btn-icon { font-size: 18px; }
-.ad-btn-text { display: flex; flex-direction: column; line-height: 1.2; }
-.ad-btn-main { font-size: 13px; }
-.ad-btn-sub  { font-size: 10px; font-weight: 700; opacity: 0.88; }
+.ad-btn-icon { font-size: 16px; }
+.ad-btn-text { font-size: 12px; font-weight: 900; }
 .ad-close {
-position: absolute; top: 6px; right: 10px;
+flex-shrink: 0;
 background: none; border: none; cursor: pointer;
-font-size: 14px; color: #c0a0b0; padding: 2px 4px;
+font-size: 15px; color: #c0a0b0; padding: 2px 4px;
 line-height: 1;
 }
 
@@ -364,6 +363,17 @@ transition: opacity 0.1s;
     <input class="island-name-input" type="text" id="islandName" placeholder="島の名前…" maxlength="18" value="ゆめしま">
     <button class="btn-export" onclick="exportMap()">📤 保存</button>
   </header>
+  <div class="ad-banner" id="adBanner">
+    <div class="ad-copy">✨ 話題の新作『ぽこポケ』で自分だけの街を作ろう！</div>
+    <a class="ad-btn" href="https://www.amazon.co.jp/gp/search?ie=UTF8&tag=otaku093-22&keywords=%E3%81%BD%E3%81%93+%E3%81%82+%E3%83%9D%E3%82%B1%E3%83%A2%E3%83%B3" target="_blank" rel="noopener">
+      <span class="ad-btn-icon">🎮</span>
+      <div class="ad-btn-text">
+        <span class="ad-btn-main">ぽこ あ ポケモン をAmazonで見る</span>
+        <span class="ad-btn-sub">🛒 Amazonで今すぐチェック →</span>
+      </div>
+    </a>
+    <button class="ad-close" onclick="this.parentElement.style.display='none'" title="閉じる">✕</button>
+  </div>
 
   <div class="body">
     <div class="map-area">
@@ -397,17 +407,6 @@ transition: opacity 0.1s;
 </div>
 ```
 
-  </div>
-  <div class="ad-banner" id="adBanner">
-    <button class="ad-close" onclick="document.getElementById('adBanner').style.display='none'; document.getElementById('adBanner').style.visibility='hidden'" title="閉じる">✕</button>
-    <div class="ad-copy">✨ 話題の新作『ぽこポケ』で自分だけの街を作ろう！</div>
-    <a class="ad-btn" href="https://www.amazon.co.jp/gp/search?ie=UTF8&tag=otaku093-22&keywords=%E3%81%BD%E3%81%93+%E3%81%82+%E3%83%9D%E3%82%B1%E3%83%A2%E3%83%B3" target="_blank" rel="noopener">
-      <span class="ad-btn-icon">🎮</span>
-      <div class="ad-btn-text">
-        <span class="ad-btn-main">ぽこ あ ポケモン をAmazonで見る</span>
-        <span class="ad-btn-sub">🛒 Amazonで今すぐチェック →</span>
-      </div>
-    </a>
   </div>
 </div>
 
